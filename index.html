@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Misturadora 120L — Viewer 4D Interno | Stone DREN</title>
+<style>
+  :root {
+    --navy: #0a1220;
+    --panel: rgba(8, 14, 28, 0.9);
+    --gold: #d4a84b;
+    --orange: #ff6a1a;
+    --paper: #f4f1ea;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; font-family: Inter, system-ui, sans-serif; background: #03060c; color: var(--paper); }
+  #app { display: grid; grid-template-columns: 300px 1fr 340px; height: 100%; }
+  aside, .detail {
+    background: var(--panel);
+    backdrop-filter: blur(18px) saturate(1.25);
+    padding: 1.15rem 1.05rem;
+    overflow-y: auto;
+    border-right: 1px solid rgba(212,168,75,.22);
+    z-index: 2;
+  }
+  .detail { border-right: none; border-left: 1px solid rgba(212,168,75,.22); }
+  h1 { font-size: 1.08rem; font-weight: 650; letter-spacing: -.02em; }
+  .sub { font-size: .7rem; color: #8e99ae; margin: .35rem 0 1rem; line-height: 1.45; }
+  .eyebrow { font-size: .6rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); margin-bottom: .55rem; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; margin-bottom: 1rem; }
+  .modes button {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    color: var(--paper); padding: .5rem .4rem; border-radius: 8px; font-size: .68rem;
+    cursor: pointer; font-weight: 600;
+  }
+  .modes button.on { background: linear-gradient(135deg, rgba(255,106,26,.35), rgba(212,168,75,.15)); border-color: var(--orange); color: #fff; }
+  .cut-ctrl { margin-bottom: 1rem; padding: .65rem .7rem; background: rgba(255,255,255,.04); border-radius: 8px; border: 1px solid rgba(255,255,255,.06); }
+  .cut-ctrl label { display: flex; align-items: center; gap: .5rem; font-size: .72rem; color: #b8c0d0; }
+  .cut-ctrl input[type=range] { flex: 1; accent-color: var(--orange); }
+  .part-list { list-style: none; display: flex; flex-direction: column; gap: .32rem; }
+  .part-list button {
+    width: 100%; text-align: left; background: rgba(255,255,255,.035);
+    border: 1px solid transparent; color: var(--paper); padding: .62rem .7rem;
+    border-radius: 8px; cursor: pointer; font-size: .8rem; display: flex; gap: .55rem; align-items: flex-start;
+    transition: .2s ease;
+  }
+  .part-list button:hover { background: rgba(255,255,255,.07); border-color: rgba(212,168,75,.35); }
+  .part-list button.active { background: linear-gradient(135deg, rgba(255,106,26,.22), rgba(212,168,75,.1)); border-color: var(--orange); }
+  .part-list .num {
+    flex-shrink: 0; width: 1.35rem; height: 1.35rem; border-radius: 50%;
+    background: linear-gradient(145deg, #ff8a3d, #e04500); color: #fff; font-size: .68rem; font-weight: 700;
+    display: grid; place-items: center; margin-top: .05rem;
+  }
+  .part-list .name { font-weight: 600; display: block; }
+  .part-list .hint { font-size: .68rem; color: #8e99ae; display: block; margin-top: .12rem; }
+  #viewport { position: relative; min-width: 0; background: radial-gradient(ellipse at 50% 28%, #182440 0%, #03060c 68%); }
+  canvas { display: block; width: 100%; height: 100%; }
+  .toolbar {
+    position: absolute; left: 50%; bottom: 1.1rem; transform: translateX(-50%);
+    display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; justify-content: center;
+    background: rgba(8,14,28,.92); padding: .55rem .75rem; border-radius: 999px;
+    border: 1px solid rgba(212,168,75,.28); max-width: calc(100% - 1.2rem);
+    box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 2;
+  }
+  .toolbar button, .toolbar label {
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    color: var(--paper); padding: .4rem .72rem; border-radius: 999px; font-size: .7rem;
+    cursor: pointer; white-space: nowrap;
+  }
+  .toolbar button:hover, .toolbar button.on { background: linear-gradient(135deg,#ff8a3d,#e04500); border-color: transparent; }
+  .toolbar label { display: flex; align-items: center; gap: .35rem; cursor: default; }
+  .toolbar input[type=range] { width: 90px; accent-color: var(--orange); }
+  .hint-bar {
+    position: absolute; top: 1rem; left: 50%; transform: translateX(-50%);
+    font-size: .68rem; color: #c5cddb; background: rgba(8,14,28,.78);
+    padding: .4rem .85rem; border-radius: 999px; pointer-events: none; z-index: 2;
+    border: 1px solid rgba(255,255,255,.06); max-width: 90%; text-align: center;
+  }
+  .quality {
+    position: absolute; top: 1rem; right: 1rem; z-index: 2;
+    font-size: .6rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--gold); background: rgba(8,14,28,.8); padding: .35rem .6rem;
+    border-radius: 6px; border: 1px solid rgba(212,168,75,.3);
+  }
+  .detail h2 { font-size: 1.1rem; margin-bottom: .35rem; color: #fff; }
+  .detail .badge {
+    display: inline-block; font-size: .6rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #1a1008; background: linear-gradient(135deg,#ffd27a,#d4a84b);
+    padding: .2rem .5rem; border-radius: 4px; margin-bottom: .75rem;
+  }
+  .detail p { font-size: .85rem; line-height: 1.65; color: #c8d0e0; margin-bottom: .85rem; }
+  .specs { list-style: none; display: flex; flex-direction: column; gap: .4rem; }
+  .specs li {
+    font-size: .75rem; background: rgba(255,255,255,.04); border-radius: 8px;
+    padding: .55rem .7rem; border-left: 3px solid var(--orange);
+  }
+  .specs strong { color: var(--gold); font-weight: 600; display: block; font-size: .64rem; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .12rem; }
+  .empty { color: #7d879a; font-size: .84rem; line-height: 1.5; }
+  @media (max-width: 960px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+    aside, .detail { max-height: 26vh; border: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="eyebrow">4D · Corte interno · PBR</div>
+    <h1>Misturadora PP 120 L</h1>
+    <p class="sub">Sólido, corte 4D ou raio-X. Peça a peça, explosão e órbita 360°.</p>
+    <div class="modes" id="viewModes">
+      <button type="button" data-mode="solid" class="on">Sólido</button>
+      <button type="button" data-mode="cutaway">Corte 4D</button>
+      <button type="button" data-mode="xray">Raio-X</button>
+      <button type="button" data-mode="ghost">Casca fantasma</button>
+    </div>
+    <div class="cut-ctrl" id="cutCtrl" hidden>
+      <label>Plano de corte <input type="range" id="cutPlane" min="0" max="100" value="55" /></label>
+    </div>
+    <ul class="part-list" id="partList"></ul>
+  </aside>
+  <div id="viewport">
+    <div class="hint-bar" id="hintBar">Arraste = orbitar · Scroll = zoom · Clique = detalhe</div>
+    <div class="quality">Hi-DPI · ACES · Soft shadows</div>
+    <div class="toolbar">
+      <button type="button" id="btnAssemble">Montada</button>
+      <button type="button" id="btnExplode">Explodida</button>
+      <label>Explosão <input type="range" id="explode" min="0" max="100" value="0" /></label>
+      <button type="button" id="btnSpin">Girar 360°</button>
+      <button type="button" id="btnReset">Reset</button>
+    </div>
+  </div>
+  <div class="detail" id="detail">
+    <div class="eyebrow">Peça selecionada</div>
+    <p class="empty">Selecione uma peça ou ative Corte 4D para ver o interior.</p>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const ORANGE = 0xff6a1a;
+const ORANGE_D = 0xd45510;
+const STEEL = 0xb8c0c8;
+const RUBBER = 0x1c1c1c;
+
+/** Wheel geometry constants — ground must sit at tire bottom, never clip */
+const WHEEL_Y = -1.28;
+const WHEEL_R = 0.30;
+const WHEEL_TUBE = 0.105;
+const TIRE_BOTTOM = WHEEL_Y - (WHEEL_R + WHEEL_TUBE); // lowest point
+const GROUND_TOP = TIRE_BOTTOM; // flush contact
+const GROUND_H = 0.1;
+const GROUND_Y = GROUND_TOP - GROUND_H / 2;
+
+const PARTS = [
+  { id:'tampa', num:1, name:'Tampa / grade de segurança', hint:'Proteção superior', explode:[0,1.85,0], shell:true,
+    desc:'Tampa circular com grade. Permite carga com proteção — sem acesso livre às pás.',
+    specs:[['Função','Proteção + carga'],['Material','PP / aço pintado']] },
+  { id:'tambor', num:2, name:'Tambor polipropileno 120 L', hint:'~90 L útil · antiaderente', explode:[0,0.95,0], shell:true,
+    desc:'Tambor PP ~120 L (útil ≈ 90 L). Plástico reduz aderência de resina vs aço. No Corte 4D você vê pás e fundo por dentro.',
+    specs:[['Capacidade','120 L · ~90 L útil'],['Material','Polipropileno'],['Vantagem','Limpeza · menos pegada de resina']] },
+  { id:'pas', num:3, name:'Pás de ação forçada + eixo', hint:'INTERNA · tambor parado', explode:[0,0.55,0], internal:true,
+    desc:'Peça interna. Pás no eixo vertical: forced action — varrem parede e fundo sem zona morta.',
+    specs:[['Princípio','Forced action'],['Eixo','Vertical central'],['Visível em','Corte 4D / Raio-X']] },
+  { id:'selo', num:4, name:'Vedação do eixo', hint:'INTERNA · selo crítico', explode:[0,0.05,0], internal:true,
+    desc:'Peça interna. Selo entre fundo do tambor e motorredutor — impede resina no redutor.',
+    specs:[['Posição','Fundo / eixo'],['Risco','Vazamento + dano no motor'],['Visível em','Corte 4D / Raio-X']] },
+  { id:'motor', num:5, name:'Motorredutor ~2 kW', hint:'Bottom drive', explode:[0,-0.75,0], shell:false,
+    desc:'~2 kW sob o tambor (Rhinovator/Novator). No corte, o eixo atravessa o selo até as pás.',
+    specs:[['Potência','~2 kW'],['Layout','Sob o tambor']] },
+  { id:'descarga', num:6, name:'Comporta de descarga', hint:'Alavanca + grade', explode:[1.15,-0.15,0.65],
+    desc:'Gate inferior com alavanca e grade. Descarrega no balde sob a máquina.',
+    specs:[['Tipo','Gate inferior'],['Operação','Alavanca']] },
+  { id:'comando', num:7, name:'Caixa de comando + emergência', hint:'Cogumelo vermelho', explode:[-1.2,0.1,0.45],
+    desc:'Partida/parada + emergência. Corte rápido de energia em obra.',
+    specs:[['Itens','Partida + E-stop'],['Posição','Lateral do chassi']] },
+  { id:'chassi', num:8, name:'Chassi tubular + pés', hint:'Estabilidade', explode:[0,-1.35,0],
+    desc:'Tubular com pés frontais. Altura para balde sob a descarga. Pés no chão; rodas tocam o piso sem clip.',
+    specs:[['Material','Aço tubular'],['Frente','Pés com patins']] },
+  { id:'rodas', num:9, name:'Rodas pneumáticas', hint:'Mobilidade', explode:[0,-1.5,-1.0],
+    desc:'Rodas traseiras. Piso alinhado à base do pneu — sem “comer” a roda.',
+    specs:[['Função','Transporte'],['Contato','Pneu assenta no piso']] }
+];
+
+const viewport = document.getElementById('viewport');
+const detail = document.getElementById('detail');
+const partList = document.getElementById('partList');
+const explodeSlider = document.getElementById('explode');
+const cutCtrl = document.getElementById('cutCtrl');
+const cutPlaneSlider = document.getElementById('cutPlane');
+const hintBar = document.getElementById('hintBar');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x03060c);
+scene.fog = new THREE.FogExp2(0x03060c, 0.038);
+
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 80);
+camera.position.set(4.3, 2.4, 4.8);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  powerPreference: 'high-performance',
+  precision: 'highp'
+});
+const DPR = Math.min(window.devicePixelRatio || 1, 2.5);
+renderer.setPixelRatio(DPR);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.localClippingEnabled = true;
+viewport.insertBefore(renderer.domElement, viewport.firstChild);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.03).texture;
+scene.environmentIntensity = 1.0;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.055;
+controls.target.set(0, 0.15, 0);
+controls.maxPolarAngle = Math.PI * 0.88;
+controls.minDistance = 2.2;
+controls.maxDistance = 12;
+
+scene.add(new THREE.HemisphereLight(0xa8c0ff, 0x2a1808, 0.5));
+const key = new THREE.DirectionalLight(0xfff4e8, 2.6);
+key.position.set(5.5, 10, 4.5);
+key.castShadow = true;
+key.shadow.mapSize.set(4096, 4096);
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 32;
+key.shadow.camera.left = -7;
+key.shadow.camera.right = 7;
+key.shadow.camera.top = 7;
+key.shadow.camera.bottom = -7;
+key.shadow.bias = -0.0002;
+key.shadow.normalBias = 0.025;
+key.shadow.radius = 2.5;
+scene.add(key);
+
+const rim = new THREE.DirectionalLight(0x7ab0ff, 1.15);
+rim.position.set(-6, 3.2, -4);
+scene.add(rim);
+
+const warm = new THREE.SpotLight(0xff8a3d, 22, 18, Math.PI / 5.5, 0.4, 1.15);
+warm.position.set(-2.2, 5.8, 3.8);
+warm.target.position.set(0, 0.1, 0);
+warm.castShadow = true;
+warm.shadow.mapSize.set(2048, 2048);
+scene.add(warm);
+scene.add(warm.target);
+
+// Ground flush with tire bottom — never clips wheels
+const ground = new THREE.Mesh(
+  new THREE.CylinderGeometry(6, 6, GROUND_H, 96),
+  new THREE.MeshStandardMaterial({ color: 0x0a0e16, metalness: 0.88, roughness: 0.18, envMapIntensity: 1.25 })
+);
+ground.position.y = GROUND_Y;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const glow = new THREE.Mesh(
+  new THREE.RingGeometry(1.5, 3.4, 80),
+  new THREE.MeshBasicMaterial({ color: 0xff6a1a, transparent: true, opacity: 0.05, side: THREE.DoubleSide })
+);
+glow.rotation.x = -Math.PI / 2;
+glow.position.y = GROUND_TOP + 0.002;
+scene.add(glow);
+
+const root = new THREE.Group();
+scene.add(root);
+const partMap = new Map();
+
+/** Clip plane: keep geometry where x < constant (cut from +X side) */
+const clipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0.15);
+let viewMode = 'solid';
+
+function plastic(color, extra = {}) {
+  return new THREE.MeshPhysicalMaterial({
+    color, metalness: 0.04, roughness: 0.34, clearcoat: 0.65, clearcoatRoughness: 0.22,
+    envMapIntensity: 1.15, side: THREE.FrontSide, ...extra
+  });
+}
+function metal(color, extra = {}) {
+  return new THREE.MeshPhysicalMaterial({
+    color, metalness: 0.94, roughness: 0.24, envMapIntensity: 1.4, ...extra
+  });
+}
+function rubber(color = RUBBER) {
+  return new THREE.MeshPhysicalMaterial({ color, metalness: 0.04, roughness: 0.9, envMapIntensity: 0.25 });
+}
+function paintSteel(color) {
+  return new THREE.MeshPhysicalMaterial({
+    color, metalness: 0.58, roughness: 0.38, clearcoat: 0.4, clearcoatRoughness: 0.32, envMapIntensity: 1.05
+  });
+}
+
+function addPart(data, buildFn) {
+  const group = new THREE.Group();
+  group.name = data.id;
+  group.userData.partId = data.id;
+  buildFn(group);
+  root.add(group);
+  const meshList = [];
+  group.traverse(o => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+      o.userData.partId = data.id;
+      o.userData.shell = !!data.shell;
+      o.userData.internal = !!data.internal;
+      meshList.push(o);
+    }
+  });
+  partMap.set(data.id, {
+    group,
+    home: new THREE.Vector3(),
+    explode: new THREE.Vector3(...data.explode),
+    meshList,
+    data,
+    baseMats: meshList.map(m => m.material.clone())
+  });
+}
+
+const SEG = 96;
+
+addPart(PARTS[0], g => {
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.74, 0.05, SEG), plastic(ORANGE));
+  lid.position.y = 1.26;
+  g.add(lid);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.03, 20, SEG), plastic(ORANGE_D));
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 1.26;
+  g.add(rim);
+  for (let i = -3; i <= 3; i++) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.016, 0.026), metal(0x555555, { roughness: 0.38 }));
+    bar.position.set(0, 1.292, i * 0.1);
+    g.add(bar);
+    const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.016, 0.78), metal(0x555555, { roughness: 0.38 }));
+    bar2.position.set(i * 0.1, 1.292, 0);
+    g.add(bar2);
+  }
+});
+
+addPart(PARTS[1], g => {
+  // Outer drum wall (clipped in cutaway)
+  const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.74, 1.38, SEG, 1, true), plastic(ORANGE, { roughness: 0.32, side: THREE.DoubleSide }));
+  drum.position.y = 0.5;
+  drum.userData.clippable = true;
+  g.add(drum);
+  // Cap top ring
+  const top = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.038, 16, SEG), plastic(ORANGE_D));
+  top.rotation.x = Math.PI / 2;
+  top.position.y = 1.18;
+  top.userData.clippable = true;
+  g.add(top);
+  // Solid outer for solid mode — second mesh we toggle
+  const drumSolid = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.74, 1.38, SEG), plastic(ORANGE, { roughness: 0.32 }));
+  drumSolid.position.y = 0.5;
+  drumSolid.name = 'drumSolid';
+  drumSolid.userData.clippable = true;
+  g.add(drumSolid);
+  [0.1, 0.9].forEach(y => {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.815, 0.036, 14, SEG), metal(0x1a1a1a, { roughness: 0.42 }));
+    band.rotation.x = Math.PI / 2;
+    band.position.y = y;
+    band.userData.clippable = true;
+    g.add(band);
+  });
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.24, 0.025), plastic(ORANGE_D));
+  plate.position.set(0, 0.74, 0.81);
+  plate.userData.clippable = true;
+  g.add(plate);
+  const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.32, 0.24, SEG), plastic(ORANGE_D, { roughness: 0.38 }));
+  cone.position.y = -0.28;
+  cone.userData.clippable = true;
+  g.add(cone);
+  // Inner wall visible in cut (darker orange)
+  const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.66, 1.3, SEG, 1, true), plastic(0xc24a0e, { roughness: 0.45, side: THREE.BackSide }));
+  inner.position.y = 0.5;
+  inner.name = 'drumInner';
+  g.add(inner);
+});
+
+addPart(PARTS[2], g => {
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.25, 32), metal(STEEL, { roughness: 0.18 }));
+  shaft.position.y = 0.45;
+  g.add(shaft);
+  for (let i = 0; i < 3; i++) {
+    const arm = new THREE.Group();
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.042, 0.6), metal(STEEL, { roughness: 0.2 }));
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.34, 0.048), metal(0xc8d0d8, { roughness: 0.16 }));
+    blade.position.set(0, -0.09, 0.31);
+    blade.rotation.x = 0.28;
+    // scraper tip
+    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.03), metal(0xd0d6dc));
+    tip.position.set(0, -0.22, 0.42);
+    arm.add(bar, blade, tip);
+    arm.position.y = 0.12 + i * 0.36;
+    arm.rotation.y = (i / 3) * Math.PI * 2 + 0.35;
+    g.add(arm);
+  }
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.1, 28), metal(0x888888));
+  hub.position.y = -0.14;
+  g.add(hub);
+});
+
+addPart(PARTS[3], g => {
+  const seal = new THREE.Mesh(new THREE.TorusGeometry(0.125, 0.05, 20, 48), rubber());
+  seal.rotation.x = Math.PI / 2;
+  seal.position.y = -0.3;
+  g.add(seal);
+  const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.048, 40), metal(0x3a3a3a, { roughness: 0.38 }));
+  flange.position.y = -0.36;
+  g.add(flange);
+});
+
+addPart(PARTS[4], g => {
+  const housing = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.36, 0.56, 64), paintSteel(ORANGE_D));
+  housing.position.y = -0.64;
+  housing.userData.clippable = true;
+  g.add(housing);
+  const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.235, 0.36, 48), metal(0x2a2a2a, { roughness: 0.32 }));
+  motor.position.y = -1.05;
+  g.add(motor);
+  for (let i = 0; i < 12; i++) {
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.3, 0.065), metal(0x3a3a3a, { roughness: 0.38 }));
+    const a = (i / 12) * Math.PI * 2;
+    rib.position.set(Math.cos(a) * 0.25, -1.05, Math.sin(a) * 0.25);
+    rib.rotation.y = -a;
+    g.add(rib);
+  }
+});
+
+addPart(PARTS[5], g => {
+  const chute = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.38), metal(0x1a1a1a, { roughness: 0.48 }));
+  chute.position.set(0.58, -0.36, 0.4);
+  chute.rotation.y = -0.45;
+  g.add(chute);
+  const lever = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.75, 16), metal(0x222222));
+  lever.rotation.z = Math.PI / 2;
+  lever.position.set(0.32, -0.16, 0.6);
+  g.add(lever);
+  const grip = new THREE.Mesh(new THREE.CapsuleGeometry(0.042, 0.05, 6, 12), rubber());
+  grip.position.set(0.0, -0.16, 0.6);
+  g.add(grip);
+});
+
+addPart(PARTS[6], g => {
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.15), metal(0x5a5a5a, { roughness: 0.42 }));
+  box.position.set(-0.98, 0.14, 0.4);
+  g.add(box);
+  const estop = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.055, 28), plastic(0xe01010, { roughness: 0.28, clearcoat: 0.85 }));
+  estop.position.set(-0.98, 0.32, 0.48);
+  g.add(estop);
+  const yel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.09, 0.02), plastic(0xf0c400, { roughness: 0.38 }));
+  yel.position.set(-0.98, 0.06, 0.49);
+  g.add(yel);
+});
+
+addPart(PARTS[7], g => {
+  const footY = GROUND_TOP + 0.018;
+  const mkLeg = (x, z, pad) => {
+    const topY = -0.2;
+    const len = topY - footY;
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, Math.abs(len), 20), paintSteel(ORANGE));
+    leg.position.set(x, (topY + footY) / 2, z);
+    g.add(leg);
+    if (pad) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.125, 0.032, 28), metal(STEEL, { roughness: 0.32 }));
+      p.position.set(x, footY + 0.016, z);
+      g.add(p);
+    }
+  };
+  mkLeg(0.58, 0.52, true);
+  mkLeg(-0.58, 0.52, true);
+  mkLeg(0.58, -0.48, false);
+  mkLeg(-0.58, -0.48, false);
+  const brace = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.042, 0.042), paintSteel(ORANGE_D));
+  brace.position.set(0, -1.05, 0.52);
+  g.add(brace);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2, 20), metal(STEEL));
+  axle.rotation.z = Math.PI / 2;
+  axle.position.set(0, WHEEL_Y, -0.58);
+  g.add(axle);
+});
+
+addPart(PARTS[8], g => {
+  const mkWheel = x => {
+    const tire = new THREE.Mesh(new THREE.TorusGeometry(WHEEL_R, WHEEL_TUBE, 28, 56), rubber());
+    tire.rotation.y = Math.PI / 2;
+    tire.position.set(x, WHEEL_Y, -0.58);
+    g.add(tire);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.085, 24), metal(STEEL, { roughness: 0.28 }));
+    hub.rotation.z = Math.PI / 2;
+    hub.position.set(x, WHEEL_Y, -0.58);
+    g.add(hub);
+  };
+  mkWheel(0.58);
+  mkWheel(-0.58);
+});
+
+PARTS.forEach(p => {
+  const li = document.createElement('li');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.dataset.id = p.id;
+  const tag = p.internal ? ' · interna' : '';
+  btn.innerHTML = `<span class="num">${p.num}</span><span><span class="name">${p.name}</span><span class="hint">${p.hint}${tag}</span></span>`;
+  btn.onclick = () => selectPart(p.id, true);
+  li.appendChild(btn);
+  partList.appendChild(li);
+});
+
+let selectedId = null;
+let autoSpin = false;
+
+function setExplode(t) {
+  explodeSlider.value = String(Math.round(t * 100));
+  partMap.forEach(entry => {
+    entry.group.position.copy(entry.home).addScaledVector(entry.explode, t);
+  });
+}
+
+function applyViewMode(mode) {
+  viewMode = mode;
+  document.querySelectorAll('#viewModes button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  cutCtrl.hidden = mode !== 'cutaway';
+  const cutOn = mode === 'cutaway';
+  clipPlane.constant = (Number(cutPlaneSlider.value) / 100) * 1.6 - 0.8;
+
+  const hints = {
+    solid: 'Modo sólido · arraste para orbitar · clique nas peças',
+    cutaway: 'Corte 4D · plano corta o tambor · veja pás, selo e eixo',
+    xray: 'Raio-X · casca translúcida · interiores destacados',
+    ghost: 'Casca fantasma · tambor semi-transparente · interiores nítidos'
+  };
+  hintBar.textContent = hints[mode];
+
+  partMap.forEach((entry, pid) => {
+    const isShell = entry.data.shell;
+    const isInternal = entry.data.internal;
+    entry.meshList.forEach((mesh, i) => {
+      const base = entry.baseMats[i].clone();
+      mesh.material = base;
+      mesh.visible = true;
+
+      // drumSolid vs open drum wall
+      if (mesh.name === 'drumSolid') {
+        mesh.visible = mode === 'solid';
+      }
+      if (mesh.parent?.name === 'tambor' || entry.data.id === 'tambor') {
+        // open cylinder only useful when not solid
+      }
+
+      if (cutOn && mesh.userData.clippable) {
+        mesh.material.clippingPlanes = [clipPlane];
+        mesh.material.clipShadows = true;
+        mesh.material.needsUpdate = true;
+      } else {
+        mesh.material.clippingPlanes = [];
+        mesh.material.needsUpdate = true;
+      }
+
+      if (mode === 'xray' && isShell) {
+        mesh.material.transparent = true;
+        mesh.material.opacity = 0.18;
+        mesh.material.depthWrite = false;
+        mesh.material.side = THREE.DoubleSide;
+      }
+      if (mode === 'ghost' && isShell) {
+        mesh.material.transparent = true;
+        mesh.material.opacity = 0.28;
+        mesh.material.depthWrite = false;
+        mesh.material.side = THREE.DoubleSide;
+      }
+      if ((mode === 'xray' || mode === 'ghost' || mode === 'cutaway') && isInternal) {
+        mesh.material.emissive = new THREE.Color(0xff6a1a);
+        mesh.material.emissiveIntensity = 0.15;
+      }
+      if (mode === 'cutaway' && mesh.name === 'drumInner') {
+        mesh.visible = true;
+      }
+    });
+  });
+
+  // Open-wall drum: hide open mesh in solid, show in cut/xray/ghost
+  const tambor = partMap.get('tambor');
+  if (tambor) {
+    tambor.meshList.forEach(mesh => {
+      if (mesh.geometry?.type === 'CylinderGeometry' && mesh.geometry.parameters?.openEnded) {
+        mesh.visible = mode !== 'solid';
+      }
+      if (mesh.name === 'drumSolid') mesh.visible = mode === 'solid';
+      if (mesh.name === 'drumInner') mesh.visible = mode !== 'solid';
+    });
+  }
+
+  if (selectedId) selectPart(selectedId, false);
+  else if (mode === 'cutaway' || mode === 'xray' || mode === 'ghost') selectPart('pas', true);
+}
+
+function selectPart(id, focus) {
+  selectedId = id;
+  partList.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+
+  // re-apply materials then highlight
+  applyViewMode(viewMode);
+
+  const entry = partMap.get(id);
+  entry.meshList.forEach((mesh) => {
+    if (!mesh.visible) return;
+    const hl = mesh.material.clone();
+    hl.emissive = new THREE.Color(0xff5a00);
+    hl.emissiveIntensity = (hl.emissiveIntensity || 0) + 0.32;
+    mesh.material = hl;
+  });
+
+  const p = PARTS.find(x => x.id === id);
+  detail.innerHTML = `
+    <div class="eyebrow">Peça ${p.num} / 9${p.internal ? ' · INTERNA' : ''}</div>
+    <span class="badge">${viewMode === 'cutaway' ? 'Corte 4D' : 'Selecionada'}</span>
+    <h2>${p.name}</h2>
+    <p>${p.desc}</p>
+    <ul class="specs">${p.specs.map(([k,v]) => `<li><strong>${k}</strong>${v}</li>`).join('')}</ul>
+  `;
+  if (focus) {
+    const world = new THREE.Vector3();
+    entry.group.getWorldPosition(world);
+    controls.target.lerp(world, 0.65);
+  }
+}
+
+// Fix recursive applyViewMode calling selectPart — break loop
+let applying = false;
+const _apply = applyViewMode;
+applyViewMode = function(mode) {
+  if (applying) return;
+  applying = true;
+  viewMode = mode;
+  document.querySelectorAll('#viewModes button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  cutCtrl.hidden = mode !== 'cutaway';
+  const cutOn = mode === 'cutaway';
+  clipPlane.constant = (Number(cutPlaneSlider.value) / 100) * 1.6 - 0.8;
+  const hints = {
+    solid: 'Modo sólido · arraste para orbitar · clique nas peças',
+    cutaway: 'Corte 4D · plano corta o tambor · veja pás, selo e eixo',
+    xray: 'Raio-X · casca translúcida · interiores destacados',
+    ghost: 'Casca fantasma · tambor semi-transparente · interiores nítidos'
+  };
+  hintBar.textContent = hints[mode];
+
+  partMap.forEach((entry) => {
+    const isShell = entry.data.shell;
+    const isInternal = entry.data.internal;
+    entry.meshList.forEach((mesh, i) => {
+      mesh.material = entry.baseMats[i].clone();
+      mesh.visible = true;
+      if (cutOn && (mesh.userData.clippable || entry.data.id === 'tambor' || entry.data.id === 'tampa' || (entry.data.id === 'motor' && mesh.userData.clippable))) {
+        mesh.material.clippingPlanes = [clipPlane];
+        mesh.material.clipShadows = true;
+      } else {
+        mesh.material.clippingPlanes = [];
+      }
+      mesh.material.needsUpdate = true;
+
+      if ((mode === 'xray' || mode === 'ghost') && isShell) {
+        mesh.material.transparent = true;
+        mesh.material.opacity = mode === 'xray' ? 0.16 : 0.3;
+        mesh.material.depthWrite = false;
+        mesh.material.side = THREE.DoubleSide;
+      }
+      if ((mode === 'xray' || mode === 'ghost' || mode === 'cutaway') && isInternal) {
+        mesh.material.emissive = new THREE.Color(0xff6a1a);
+        mesh.material.emissiveIntensity = 0.18;
+      }
+    });
+    entry.meshList.forEach(mesh => {
+      if (mesh.name === 'drumSolid') mesh.visible = mode === 'solid';
+      if (mesh.geometry?.parameters?.openEnded) mesh.visible = mode !== 'solid';
+      if (mesh.name === 'drumInner') mesh.visible = mode !== 'solid';
+    });
+  });
+  applying = false;
+};
+
+document.querySelectorAll('#viewModes button').forEach(b => {
+  b.onclick = () => {
+    applyViewMode(b.dataset.mode);
+    if (selectedId) {
+      const entry = partMap.get(selectedId);
+      entry.meshList.forEach(mesh => {
+        if (!mesh.visible) return;
+        const hl = mesh.material.clone();
+        hl.emissive = new THREE.Color(0xff5a00);
+        hl.emissiveIntensity = (hl.emissiveIntensity || 0) + 0.32;
+        mesh.material = hl;
+      });
+    }
+  };
+});
+cutPlaneSlider.oninput = () => {
+  clipPlane.constant = (Number(cutPlaneSlider.value) / 100) * 1.6 - 0.8;
+};
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down) return;
+  if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return; }
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = [];
+  partMap.forEach(en => en.meshList.forEach(m => { if (m.visible) meshes.push(m); }));
+  const hits = raycaster.intersectObjects(meshes, false);
+  if (hits.length) selectPart(hits[0].object.userData.partId, true);
+  down = null;
+});
+
+explodeSlider.oninput = () => setExplode(Number(explodeSlider.value) / 100);
+document.getElementById('btnAssemble').onclick = () => setExplode(0);
+document.getElementById('btnExplode').onclick = () => setExplode(1);
+document.getElementById('btnSpin').onclick = e => {
+  autoSpin = !autoSpin;
+  e.currentTarget.classList.toggle('on', autoSpin);
+  e.currentTarget.textContent = autoSpin ? 'Parar giro' : 'Girar 360°';
+};
+document.getElementById('btnReset').onclick = () => {
+  camera.position.set(4.3, 2.4, 4.8);
+  controls.target.set(0, 0.15, 0);
+  autoSpin = false;
+  const b = document.getElementById('btnSpin');
+  b.classList.remove('on');
+  b.textContent = 'Girar 360°';
+};
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.5, 0.85);
+composer.addPass(bloom);
+composer.addPass(new SMAAPass());
+composer.addPass(new OutputPass());
+
+function resize() {
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+  bloom.setSize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (autoSpin) root.rotation.y += 0.006;
+  controls.update();
+  composer.render();
+}
+animate();
+
+applyViewMode('solid');
+setExplode(0);
+selectPart('tambor', false);
+</script>
+</body>
+</html>
